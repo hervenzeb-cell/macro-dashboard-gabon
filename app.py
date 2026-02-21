@@ -128,6 +128,37 @@ for country in selected_countries:
         st.write(signal)
     else:
         st.write(f"{country} : Données insuffisantes")
+
+st.header("🚨 Système d'Alerte Macro")
+
+def risk_alert(country_code):
+    debt = get_latest_value(country_code, indicators["Dette publique (% PIB)"])
+    inflation = get_latest_value(country_code, indicators["Inflation (%)"])
+    gdp = get_latest_value(country_code, indicators["Croissance PIB (%)"])
+    
+    alerts = []
+    
+    if debt and debt > 80:
+        alerts.append("⚠ Dette publique élevée (>80%)")
+        
+    if inflation and inflation > 6:
+        alerts.append("⚠ Inflation élevée (>6%)")
+        
+    if gdp and gdp < 2:
+        alerts.append("⚠ Croissance faible (<2%)")
+        
+    return alerts
+
+for country in selected_countries:
+    alerts = risk_alert(countries[country])
+    
+    st.subheader(country)
+    
+    if alerts:
+        for alert in alerts:
+            st.error(alert)
+    else:
+        st.success("Aucun signal d'alerte majeur")
         
 st.header("📉 Projection Croissance PIB (Tendance)")
 
@@ -153,3 +184,64 @@ for country in selected_countries:
         
         st.subheader(f"{country}")
         st.dataframe(projection_df)
+        
+import plotly.graph_objects as go
+
+st.header("📡 Radar Macro")
+
+for country in selected_countries:
+    gdp = get_latest_value(countries[country], indicators["Croissance PIB (%)"]) or 0
+    inflation = get_latest_value(countries[country], indicators["Inflation (%)"]) or 0
+    debt = get_latest_value(countries[country], indicators["Dette publique (% PIB)"]) or 0
+    fdi = get_latest_value(countries[country], indicators["IDE (% PIB)"]) or 0
+    
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatterpolar(
+        r=[gdp, 10-inflation, 100-debt, fdi],
+        theta=["Croissance", "Stabilité Prix", "Soutenabilité Dette", "Attractivité IDE"],
+        fill='toself'
+    ))
+
+    fig.update_layout(
+        polar=dict(radialaxis=dict(visible=True)),
+        showlegend=False,
+        title=f"Profil Macro - {country}"
+    )
+
+st.plotly_chart(fig)
+
+st.header("📝 Synthèse Automatique")
+
+def macro_commentary(country_code):
+    gdp = get_latest_value(country_code, indicators["Croissance PIB (%)"])
+    debt = get_latest_value(country_code, indicators["Dette publique (% PIB)"])
+    inflation = get_latest_value(country_code, indicators["Inflation (%)"])
+    
+    if None in [gdp, debt, inflation]:
+        return "Données insuffisantes"
+    
+    commentary = f"La croissance est de {round(gdp,2)}%. "
+    
+    if gdp > 4:
+        commentary += "Dynamique économique solide. "
+    elif gdp > 2:
+        commentary += "Croissance modérée. "
+    else:
+        commentary += "Croissance fragile. "
+        
+    if debt > 80:
+        commentary += "Risque de soutenabilité de la dette élevé. "
+    else:
+        commentary += "Dette encore soutenable. "
+        
+    if inflation > 6:
+        commentary += "Pression inflationniste préoccupante."
+    else:
+        commentary += "Stabilité relative des prix."
+    
+    return commentary
+
+for country in selected_countries:
+    st.subheader(country)
+    st.write(macro_commentary(countries[country]))
