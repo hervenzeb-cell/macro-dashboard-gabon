@@ -87,39 +87,69 @@ else:
 # MODULE ATTRACTIVITÉ INVESTISSEMENT
 # -------------------------
 
-st.header("📈 Score Attractivité Investissement")
+st.header("📊 Indice Stratégique ANPI")
 
-def calculate_score(country_code):
-    gdp = get_data(country_code, indicators["Croissance PIB (%)"])
-    debt = get_data(country_code, indicators["Dette publique (% PIB)"])
-    fdi = get_data(country_code, indicators["IDE (% PIB)"])
+def get_latest_value(country_code, indicator):
+    df = get_data(country_code, indicator)
+    if df is not None and not df.empty:
+        return df.iloc[-1]["value"]
+    return None
+
+def strategic_index(country_code):
+    gdp = get_latest_value(country_code, indicators["Croissance PIB (%)"])
+    inflation = get_latest_value(country_code, indicators["Inflation (%)"])
+    debt = get_latest_value(country_code, indicators["Dette publique (% PIB)"])
+    fdi = get_latest_value(country_code, indicators["IDE (% PIB)"])
     
-    try:
-        latest_gdp = gdp.iloc[-1]["value"]
-        latest_debt = debt.iloc[-1]["value"]
-        latest_fdi = fdi.iloc[-1]["value"]
-        
-        score = (latest_gdp * 0.4) + (latest_fdi * 0.3) - (latest_debt * 0.3)
-        return round(score, 2)
-    except:
+    if None in [gdp, inflation, debt, fdi]:
         return None
+    
+    score = (
+        (gdp * 0.3) +
+        ((10 - inflation) * 0.15) +
+        ((100 - debt) * 0.3) +
+        (fdi * 0.25)
+    )
+    
+    return round(score, 2)
 
 for country in selected_countries:
-    score = calculate_score(countries[country])
+    index_score = strategic_index(countries[country])
     
-    if score is not None:
-        if score > 5:
-            color = "green"
-            status = "🟢 Attractivité Forte"
-        elif score > 0:
-            color = "orange"
-            status = "🟠 Attractivité Modérée"
+    if index_score is not None:
+        if index_score > 50:
+            signal = "🟢 Investissement Favorable"
+        elif index_score > 30:
+            signal = "🟠 Environnement Sous Surveillance"
         else:
-            color = "red"
-            status = "🔴 Attractivité Faible"
+            signal = "🔴 Risque Macroéconomique Élevé"
         
-        st.metric(label=f"{country}", value=score)
-        st.write(status)
+        st.metric(label=f"{country} - Indice ANPI", value=index_score)
+        st.write(signal)
     else:
         st.write(f"{country} : Données insuffisantes")
+        
+st.header("📉 Projection Croissance PIB (Tendance)")
 
+import numpy as np
+
+for country in selected_countries:
+    df = get_data(countries[country], indicators["Croissance PIB (%)"])
+    
+    if df is not None and len(df) > 5:
+        x = df['date'].values
+        y = df['value'].values
+        
+        coeffs = np.polyfit(x, y, 1)
+        trend = np.poly1d(coeffs)
+        
+        future_years = np.array([x[-1]+1, x[-1]+2, x[-1]+3])
+        future_values = trend(future_years)
+        
+        projection_df = pd.DataFrame({
+            "Année": future_years,
+            "Projection Croissance (%)": future_values
+        })
+        
+        st.subheader(f"{country}")
+        st.dataframe(projection_df)
