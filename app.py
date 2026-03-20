@@ -11,56 +11,6 @@ st.title("📊 ANPI – Dashboard Macroéconomique & Attractivité Investissemen
 # CONFIGURATION
 # -------------------------
 
-analysis_mode = st.sidebar.radio(
-    "Mode d'analyse",
-    ["🏛 Risque Souverain", "💼 Investisseur Privé"]
-)
-
-if analysis_mode == "🏛 Risque Souverain":
-    
-    st.header("🏛 Analyse Risque Souverain")
-
-    for country in selected_countries:
-        debt = get_latest_value(countries[country], indicators["Dette publique (% PIB)"]) or 0
-        gdp = get_latest_value(countries[country], indicators["Croissance PIB (%)"]) or 0
-        inflation = get_latest_value(countries[country], indicators["Inflation (%)"]) or 0
-        
-        risk_score = (debt * 0.5) - (gdp * 0.3) + (inflation * 0.2)
-        risk_score = round(risk_score,2)
-
-        st.subheader(country)
-        st.metric("Score Risque Souverain", risk_score)
-
-        if risk_score > 60:
-            st.error("🔴 Risque Souverain Élevé")
-        elif risk_score > 40:
-            st.warning("🟠 Risque Modéré")
-        else:
-            st.success("🟢 Risque Contenu")
-
-if analysis_mode == "💼 Investisseur Privé":
-    
-    st.header("💼 Analyse Attractivité Investisseur")
-
-    for country in selected_countries:
-        gdp = get_latest_value(countries[country], indicators["Croissance PIB (%)"]) or 0
-        fdi = get_latest_value(countries[country], indicators["IDE (% PIB)"]) or 0
-        inflation = get_latest_value(countries[country], indicators["Inflation (%)"]) or 0
-        debt = get_latest_value(countries[country], indicators["Dette publique (% PIB)"]) or 0
-        
-        invest_score = (gdp * 0.4) + (fdi * 0.3) + ((10-inflation) * 0.2) + ((100-debt) * 0.1)
-        invest_score = round(invest_score,2)
-
-        st.subheader(country)
-        st.metric("Score Attractivité Investissement", invest_score)
-
-        if invest_score > 50:
-            st.success("🟢 Environnement favorable à l'investissement")
-        elif invest_score > 30:
-            st.warning("🟠 Investissement sous vigilance")
-        else:
-            st.error("🔴 Environnement risqué")
-
 countries = {
     "Gabon": "GAB",
     "Cameroun": "CMR",
